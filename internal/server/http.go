@@ -57,9 +57,14 @@ func NewHTTPServer(cfg config.Config, db *gorm.DB) *echo.Echo {
 	zoneService := parkingzone.NewService(zoneRepository)
 	zoneHandler := parkingzone.NewHandler(zoneService)
 
+	reservationRepository := reservation.NewRepository(db)
+	reservationService := reservation.NewService(reservationRepository)
+	reservationHandler := reservation.NewHandler(reservationService)
+
 	api := e.Group("/api/v1")
 	user.RegisterRoutes(api, userHandler)
 	parkingzone.RegisterRoutes(api, zoneHandler, jwtService)
+	reservation.RegisterRoutes(api, reservationHandler, jwtService)
 
 	return e
 }

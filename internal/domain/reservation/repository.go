@@ -1,14 +1,25 @@
 package reservation
 
-import "gorm.io/gorm"
+import (
+	"errors"
+
+	"spotsync/internal/apperror"
+	"spotsync/internal/domain/parkingzone"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+)
 
 const (
 	StatusActive    = "active"
 	StatusCompleted = "completed"
 	StatusCancelled = "cancelled"
+
+	zoneFullMessage = "Parking zone is full"
 )
 
 type Repository interface {
+	ReserveSpot(userID, zoneID uint, licensePlate string) (*Reservation, error)
 	FindByID(id uint) (*Reservation, error)
 	FindByIDWithRelations(id uint) (*Reservation, error)
 	FindByUserID(userID uint) ([]Reservation, error)
@@ -22,6 +33,51 @@ type repository struct {
 
 func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
+}
+
+func (r *repository) ReserveSpot(userID, zoneID uint, licensePlate string) (*Reservation, error) {
+	var createdReservation Reservation
+
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var zone parkingzone.ParkingZone
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&zone, zoneID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperror.NotFound("Parking zone not found")
+			}
+
+			return apperror.Internal("Failed to load parking zone")
+		}
+
+		var activeCount int64
+		if err := tx.Model(&Reservation{}).
+			Where("zone_id = ? AND status = ?", zoneID, StatusActive).
+			Count(&activeCount).Error; err != nil {
+			return apperror.Internal("Failed to count active reservations")
+		}
+
+		if activeCount >= int64(zone.TotalCapacity) {
+			return apperror.Conflict(zoneFullMessage)
+		}
+
+		reservation := &Reservation{
+			UserID:       userID,
+			ZoneID:       zoneID,
+			LicensePlate: licensePlate,
+			Status:       StatusActive,
+		}
+
+		if err := tx.Create(reservation).Error; err != nil {
+			return apperror.Internal("Failed to create reservation")
+		}
+
+		createdReservation = *reservation
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &createdReservation, nil
 }
 
 func (r *repository) FindByID(id uint) (*Reservation, error) {
