@@ -10,7 +10,10 @@ import (
 	"gorm.io/gorm"
 )
 
-const defaultRole = "driver"
+const (
+	roleDriver = "driver"
+	roleAdmin  = "admin"
+)
 
 type Service interface {
 	Register(req dto.RegisterRequest) (*dto.UserResponse, error)
@@ -30,6 +33,13 @@ func NewService(repository Repository, jwtService *auth.JWTService) Service {
 }
 
 func (s *service) Register(req dto.RegisterRequest) (*dto.UserResponse, error) {
+	if req.Role == roleAdmin {
+		return nil, apperror.Forbidden("Admin users cannot be registered publicly")
+	}
+	if req.Role != "" && req.Role != roleDriver {
+		return nil, apperror.BadRequest("Invalid user role", nil)
+	}
+
 	exists, err := s.repository.ExistsByEmail(req.Email)
 	if err != nil {
 		return nil, apperror.Internal("Failed to check user email")
@@ -45,7 +55,7 @@ func (s *service) Register(req dto.RegisterRequest) (*dto.UserResponse, error) {
 
 	role := req.Role
 	if role == "" {
-		role = defaultRole
+		role = roleDriver
 	}
 
 	user := &User{

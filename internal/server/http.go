@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"spotsync/internal/auth"
 	"spotsync/internal/config"
 	"spotsync/internal/domain/parkingzone"
 	"spotsync/internal/domain/reservation"
@@ -46,6 +47,14 @@ func NewHTTPServer(cfg config.Config, db *gorm.DB) *echo.Echo {
 	e.GET("/", func(c echo.Context) error {
 		return httpresponse.Success(c, http.StatusOK, "SpotSync API is running", nil)
 	})
+
+	jwtService := auth.NewJWTService(cfg.JWTSecret)
+	userRepository := user.NewRepository(db)
+	userService := user.NewService(userRepository, jwtService)
+	userHandler := user.NewHandler(userService)
+
+	api := e.Group("/api/v1")
+	user.RegisterRoutes(api, userHandler)
 
 	return e
 }
