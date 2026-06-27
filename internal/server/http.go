@@ -1,9 +1,13 @@
 package server
 
 import (
+	"log"
 	"net/http"
 
 	"spotsync/internal/config"
+	"spotsync/internal/domain/parkingzone"
+	"spotsync/internal/domain/reservation"
+	"spotsync/internal/domain/user"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -11,6 +15,15 @@ import (
 )
 
 func NewHTTPServer(cfg config.Config, db *gorm.DB) *echo.Echo {
+	if err := config.AutoMigrate(
+		db,
+		&user.User{},
+		&parkingzone.ParkingZone{},
+		&reservation.Reservation{},
+	); err != nil {
+		log.Fatalf("failed to run database migrations: %v", err)
+	}
+
 	e := echo.New()
 
 	e.HideBanner = true
