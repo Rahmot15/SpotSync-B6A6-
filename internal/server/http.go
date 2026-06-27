@@ -8,6 +8,8 @@ import (
 	"spotsync/internal/domain/parkingzone"
 	"spotsync/internal/domain/reservation"
 	"spotsync/internal/domain/user"
+	"spotsync/internal/httpresponse"
+	customvalidator "spotsync/internal/validator"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -25,6 +27,16 @@ func NewHTTPServer(cfg config.Config, db *gorm.DB) *echo.Echo {
 	}
 
 	e := echo.New()
+	e.Validator = customvalidator.New()
+	e.HTTPErrorHandler = func(err error, c echo.Context) {
+		if c.Response().Committed {
+			return
+		}
+
+		if handleErr := httpresponse.HandleError(c, err); handleErr != nil {
+			e.DefaultHTTPErrorHandler(handleErr, c)
+		}
+	}
 
 	e.HideBanner = true
 	e.Use(middleware.Logger())
@@ -32,10 +44,7 @@ func NewHTTPServer(cfg config.Config, db *gorm.DB) *echo.Echo {
 	e.Use(middleware.CORS())
 
 	e.GET("/", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]any{
-			"success": true,
-			"message": "SpotSync API is running",
-		})
+		return httpresponse.Success(c, http.StatusOK, "SpotSync API is running", nil)
 	})
 
 	return e
