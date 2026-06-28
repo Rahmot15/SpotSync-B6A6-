@@ -20,8 +20,8 @@ func Load() Config {
 
 	return Config{
 		Port:        getEnv("PORT", "8080"),
-		DatabaseURL: getEnv("DATABASE_URL", ""),
-		JWTSecret:   getEnv("JWT_SECRET", "change-me"),
+		DatabaseURL: getRequiredEnv("DATABASE_URL"),
+		JWTSecret:   getRequiredEnv("JWT_SECRET"),
 	}
 }
 
@@ -29,6 +29,15 @@ func getEnv(key, fallback string) string {
 	value := os.Getenv(key)
 	if value == "" {
 		return fallback
+	}
+
+	return value
+}
+
+func getRequiredEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatalf("Fatal: Environment variable %s is required but not set", key)
 	}
 
 	return value

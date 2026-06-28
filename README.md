@@ -6,9 +6,9 @@ A high-performance, concurrent RESTful API built with Go and Echo. SpotSync prov
 
 ## 🌐 Live Deployment & Submission Links
 
-* **Live API URL:** `https://spotsync-api.onrender.com` *(Replace with your deployed URL)*
-* **GitHub Repository:** `https://github.com/Rahmot15/SpotSync-B6A6-`
-* **Interview Video:** `https://youtu.be/your-video-link` *(Replace with your video link)*
+* **Live API URL:** [https://spotsync-b6a6.onrender.com](https://spotsync-b6a6.onrender.com)
+* **GitHub Repository:** [https://github.com/Rahmot15/SpotSync-B6A6-](https://github.com/Rahmot15/SpotSync-B6A6-)
+
 
 ---
 
